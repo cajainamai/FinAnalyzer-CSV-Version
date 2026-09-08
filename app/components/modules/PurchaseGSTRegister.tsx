@@ -719,14 +719,14 @@ const PurchaseGSTRegister: React.FC<PurchaseGSTRegisterProps> = ({ data }) => {
         />
         <IssueCard
           icon={<FileWarning size={18} />} accent="yellow"
-          title="Blank / Invalid GSTIN" subtitle="Tax > 0"
+          title="Blank / Invalid GSTIN" subtitle="B2B, tax booked"
           count={issues.blankInvalidGstin.length}
           active={activeIssue === 'gstin'}
           onClick={() => setActiveIssue((p) => (p === 'gstin' ? null : 'gstin'))}
         />
         <IssueCard
           icon={<FileWarning size={18} />} accent="yellow"
-          title="Missing Invoice No." subtitle="Tax > 0"
+          title="Missing Invoice No." subtitle="Tax booked"
           count={issues.noInvoiceNumber.length}
           active={activeIssue === 'noInv'}
           onClick={() => setActiveIssue((p) => (p === 'noInv' ? null : 'noInv'))}

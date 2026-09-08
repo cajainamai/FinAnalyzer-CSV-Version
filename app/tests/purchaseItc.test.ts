@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixtureStore } from './helpers/fixtureStore';
 import { getPurchaseITCRegister, deriveItcIssues, isValidGstin } from '../services/tally';
+import type { ItcRow } from '../services/tally';
 
 // Every voucher carrying at least one Purchase / Expense / Fixed Asset line.
 // Sales, receipts, payments and the contra entry are correctly absent.
@@ -157,26 +158,133 @@ test('GSTIN validation accepts the fixture GSTINs and rejects malformed ones', (
   assert.equal(isValidGstin('AA27ABCA1234C1Z5'), false, 'state code must lead');
 });
 
-// ── Documented current behaviour, not an endorsement ───────────────────────
-// `deriveItcIssues` gates the Rule 36 checks on `tax > 0`, but a genuine
-// purchase debits input GST, which is negative under Tally's sign convention.
-// The two checks below therefore never fire on real purchase data — they can
-// only trigger on ITC reversals (credit notes), where a missing GSTIN is not
-// the point. This test pins the behaviour so the gap is visible and a fix is
-// a deliberate, reviewed change rather than a silent one.
-test('KNOWN GAP: the Rule 36 GSTIN and invoice-number checks cannot fire on purchases', async () => {
+// ── Rule 36 documentation checks ───────────────────────────────────────────
+// These were previously gated on `tax > 0`. ITC is availed by debiting input
+// GST, which is negative under Tally's sign convention, so that gate meant the
+// checks never fired on a single genuine purchase. They now test the magnitude
+// of the tax, and skip the row types where no supplier GSTIN can exist.
+
+const itcRow = (over: Partial<ItcRow>): ItcRow => ({
+  partyGstinUin: '27AABCB2345B1Z7',
+  partyName: 'A Supplier',
+  vchNo: 'BILL-1',
+  date: '2025-05-08',
+  taxable: -100000,
+  igst: 0,
+  cgst: -9000,
+  sgst: -9000,
+  tax: -18000,
+  placeOfSupply: 'Maharashtra',
+  reverseCharge: 'N',
+  itcAvailability: 'Y',
+  type: 'B2B',
+  m3b: 'May',
+  booksMonth: 'May',
+  fy: '2025-26',
+  postingDate: '2025-05-10',
+  expenseLedgers: 'Purchase - Raw Material',
+  voucherType: 'Purchase',
+  voucherNumber: 'PUR-9',
+  primaryGroup: 'Purchase Accounts',
+  itcType: 'Inputs',
+  narration: '',
+  reviewFlag: '',
+  guid: 'vch-test',
+  ...over,
+});
+
+test('a B2B purchase claiming ITC without a valid GSTIN is flagged', () => {
+  const blank = itcRow({ partyGstinUin: '', guid: 'blank' });
+  const malformed = itcRow({ partyGstinUin: '27AABCA1234C1X5', guid: 'malformed' });
+  const valid = itcRow({ partyGstinUin: '27AABCB2345B1Z7', guid: 'valid' });
+
+  const issues = deriveItcIssues([blank, malformed, valid]);
+
+  assert.deepEqual(issues.blankInvalidGstin.map((r) => r.guid), ['blank', 'malformed']);
+});
+
+test('the GSTIN check fires on a debit and on a reversal alike', () => {
+  // A purchase debits input GST (negative); a credit note reversing ITC
+  // credits it (positive). Both are rows where tax was booked.
+  const purchase = itcRow({ tax: -18000, partyGstinUin: '', guid: 'purchase' });
+  const reversal = itcRow({ tax: 18000, partyGstinUin: '', guid: 'reversal' });
+
+  const issues = deriveItcIssues([purchase, reversal]);
+
+  assert.deepEqual(issues.blankInvalidGstin.map((r) => r.guid), ['purchase', 'reversal']);
+});
+
+test('a blank GSTIN is not an exception where no supplier GSTIN can exist', () => {
+  // RCM on an unregistered supplier is availed on a self-invoice under
+  // s.31(3)(f); an import of services has no Indian GSTIN at all. Flagging
+  // these would bury the B2B rows that genuinely put ITC at risk.
+  const rcm = itcRow({ type: 'RCM-UR', partyGstinUin: '', reverseCharge: 'Y', guid: 'rcm' });
+  const imported = itcRow({ type: 'IMPORTSERVICE', partyGstinUin: '', guid: 'import' });
+
+  const issues = deriveItcIssues([rcm, imported]);
+
+  assert.equal(issues.blankInvalidGstin.length, 0);
+});
+
+test('a row with no tax is a review item, not a Rule 36 exception', () => {
+  const noTax = itcRow({ tax: 0, cgst: 0, sgst: 0, partyGstinUin: '', vchNo: '', guid: 'no-tax' });
+
+  const issues = deriveItcIssues([noTax]);
+
+  assert.deepEqual(issues.rcmReview.map((r) => r.guid), ['no-tax']);
+  assert.equal(issues.blankInvalidGstin.length, 0, 'no ITC claimed, so nothing is at risk');
+  assert.equal(issues.noInvoiceNumber.length, 0);
+});
+
+test('a missing invoice number on a taxed row is flagged', () => {
+  const missing = itcRow({ vchNo: '', guid: 'missing' });
+  const whitespace = itcRow({ vchNo: '   ', guid: 'whitespace' });
+  const present = itcRow({ vchNo: 'BILL-1', guid: 'present' });
+
+  const issues = deriveItcIssues([missing, whitespace, present]);
+
+  assert.deepEqual(issues.noInvoiceNumber.map((r) => r.guid), ['missing', 'whitespace']);
+});
+
+test('the invoice-number check applies to every taxed row, including RCM', () => {
+  // Unlike the GSTIN check, a document reference is required whatever the
+  // supply type — the self-invoice has a number too.
+  const rcm = itcRow({ type: 'RCM-UR', partyGstinUin: '', vchNo: '', guid: 'rcm' });
+
+  const issues = deriveItcIssues([rcm]);
+
+  assert.deepEqual(issues.noInvoiceNumber.map((r) => r.guid), ['rcm']);
+  assert.equal(issues.blankInvalidGstin.length, 0);
+});
+
+test('rcmReview and the Rule 36 checks partition the rows by whether tax was booked', () => {
+  const rows = [
+    itcRow({ tax: -18000, guid: 'taxed' }),
+    itcRow({ tax: 0, cgst: 0, sgst: 0, guid: 'untaxed' }),
+  ];
+
+  const issues = deriveItcIssues(rows);
+
+  // Every row is either a review item or eligible for the Rule 36 checks;
+  // none can be both, and none can fall through neither.
+  assert.deepEqual(issues.rcmReview.map((r) => r.guid), ['untaxed']);
+  assert.equal(issues.rcmReview.length + 1, rows.length);
+});
+
+test('on the fixture, the RCM row is not reported despite its blank GSTIN', async () => {
   const store = await fixtureStore();
   const rows = getPurchaseITCRegister(store);
   const issues = deriveItcIssues(rows);
 
-  // JV-002 has tax of -9,000 and a blank GSTIN (unregistered supplier), which
-  // is precisely what the Rule 36 check is meant to surface.
+  // JV-002 carries tax of -9,000 and no GSTIN because Epsilon Legal is
+  // unregistered. That is correct for RCM, so it must not be reported.
   const rcm = rows.find((r) => r.voucherNumber === 'JV-002');
+  assert.equal(rcm?.type, 'RCM-UR');
   assert.equal(rcm?.partyGstinUin, '');
   assert.ok((rcm?.tax ?? 0) < 0);
 
-  // Yet no row is reported, because every taxed row has tax < 0.
+  // Every taxed B2B row in the fixture has a valid GSTIN and an invoice
+  // number, so there is nothing left to report.
   assert.equal(issues.blankInvalidGstin.length, 0);
   assert.equal(issues.noInvoiceNumber.length, 0);
-  assert.equal(rows.every((r) => r.tax <= 0), true);
 });
