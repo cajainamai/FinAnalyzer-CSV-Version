@@ -293,10 +293,20 @@ npm run dev          # Vite dev server at http://127.0.0.1:5173
 # 4. Build
 npm run build        # Production build → /dist
 
-# 5. Test
-npm run test:gstr2b  # GSTR-2B unit tests
-node scripts/smoke-test-all-modules.mjs  # Smoke test all 24 modules
+# 5. Verify (typecheck + tests): the same command CI runs
+npm test
+
+# …or individually
+npm run typecheck    # tsc --noEmit across the whole app
+npm run test:gstr2b  # GSTR-2B reconciliation unit tests
+npm run test:db      # audit.sqlite schema, PRAGMA and 50k-row insert smoke test
+
+# 6. Cross-module smoke test (needs a real Tally export ZIP; not committed)
+npx tsx scripts/smoke-test-all-modules.mjs <path-to-tally-export.zip>
 ```
+
+> `npm run build` does **not** typecheck, Vite transpiles only. Run `npm test`
+> before opening a PR, or CI will catch it for you.
 
 ### Architecture Overview
 

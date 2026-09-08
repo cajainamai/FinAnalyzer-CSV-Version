@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - claude/quirky-turing-G3Yak
+      - main
     tags:
       - 'v*'
 
