@@ -43,10 +43,10 @@ jobs:
           - os: macos-14          # Apple Silicon
             label: macos-arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -68,7 +68,7 @@ jobs:
         run: ditto -c -k --sequesterRsrc --keepParent sea/out/FinAnalyzer FinAnalyzer-${{ matrix.label }}.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FinAnalyzer-${{ matrix.label }}
           path: app/FinAnalyzer-${{ matrix.label }}.zip
@@ -83,7 +83,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        # Pinned to v7 rather than the latest v8 on purpose. v8 stops
+        # automatically decompressing downloads, and this job depends on the
+        # artifact being extracted so that `artifacts/*.zip` matches the real
+        # platform binaries rather than the artifact envelope around them.
+        # v7 already runs on Node 24, so it clears the deprecation without
+        # taking that behaviour change into a job that publishes public
+        # release assets and cannot be exercised from a branch.
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
           merge-multiple: true
