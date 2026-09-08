@@ -76,7 +76,7 @@ test('ageing totals agree with the balance sheet', async () => {
   // balance sheet. A FIFO bug that dropped or duplicated a bill would break
   // the tie even while each individual party still looked plausible.
   assert.equal(debtors.grandOutstanding, 826000);
-  assert.equal(creditors.grandOutstanding, 848000);
+  assert.equal(creditors.grandOutstanding, 1225000);
 });
 
 test('bucket totals reconcile to the outstanding total on each side', async () => {
@@ -105,7 +105,10 @@ test('only the correct side of the ledger is picked up', async () => {
   );
   assert.deepEqual(
     creditors.parties.map((p) => p.party).sort(),
-    ['Beta Industries', 'Epsilon Legal', 'Gamma Consultants', 'Zeta Machines'],
+    [
+      'Beta Industries', 'Epsilon Legal', 'Gamma Consultants', 'Kappa Traders',
+      'Omega Software Inc', 'Zeta Machines',
+    ],
   );
 });
 
@@ -115,5 +118,7 @@ test('an as-of date before a bill excludes it from the ageing', async () => {
   // Zeta's bill is dated 20-Jan-2026. Ageing as at 31-Dec-2025 must not see it.
   const result = ageParties(rows, 'creditor', '2025-12-31');
   assert.equal(result.parties.find((p) => p.party === 'Zeta Machines'), undefined);
-  assert.equal(result.grandOutstanding, 848000 - 472000);
+  // Kappa's bill (14-Feb-2026) is out too; Omega's (05-Dec-2025) is still in.
+  assert.equal(result.parties.find((p) => p.party === 'Kappa Traders'), undefined);
+  assert.equal(result.grandOutstanding, 1225000 - 472000 - 177000);
 });

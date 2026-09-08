@@ -10,3 +10,5 @@ vch-008,2026-03-31,Journal,JV-003,,,Depreciation on plant and machinery for FY 2
 vch-009,2025-10-05,Journal,JV-004,,,Office rent with TDS u/s 194I,,,0,1,0,0
 vch-010,2025-11-10,Contra,CON-001,,,Cash withdrawn from bank for office use,,,0,1,0,0
 vch-011,2026-01-20,Purchase,PUR-002,ZM-2026-77,2026-01-18,Purchase of CNC machine from Zeta Machines,Zeta Machines,Gujarat,1,1,0,0
+vch-012,2025-12-05,Journal,JV-005,,,Annual software subscription from overseas vendor - import of services,Omega Software Inc,Maharashtra,0,1,0,0
+vch-013,2026-02-14,Purchase,PUR-003,KT-556,2026-02-12,Inter-state raw material purchase from Kappa Traders,Kappa Traders,Maharashtra,1,1,0,0

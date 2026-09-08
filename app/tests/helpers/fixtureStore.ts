@@ -50,21 +50,22 @@ export const FIXTURE = {
   periodFrom: '2025-04-01',
   periodTo: '2026-03-31',
 
-  ledgerCount: 31,
+  ledgerCount: 35,
   groupCount: 14,
-  voucherCount: 11,
-  accountingLineCount: 34,
+  voucherCount: 13,
+  accountingLineCount: 41,
 
   // getLedgerEntries() emits one row per accounting line, plus one master row
   // per ledger that never appears in a transaction (Share Capital, General
   // Reserve, HDFC Term Loan, Profit & Loss A/c).
-  shimTransactionRows: 34,
+  shimTransactionRows: 41,
   shimMasterRows: 4,
 
   // Trial balance, in rupees. Dr and Cr are equal by construction.
-  trialBalanceTotal: 5591000,
+  trialBalanceTotal: 6004000,
 
-  // Revenue 7,00,000 less expenses 9,00,000 (purchases 2,00,000, professional
-  // 1,00,000, legal 50,000, rent 3,00,000, depreciation 2,50,000).
-  netLoss: 200000,
+  // Revenue 7,00,000 less expenses 12,50,000 (purchases 3,50,000, professional
+  // 1,00,000, legal 50,000, rent 3,00,000, software 2,00,000, depreciation
+  // 2,50,000).
+  netLoss: 550000,
 } as const;

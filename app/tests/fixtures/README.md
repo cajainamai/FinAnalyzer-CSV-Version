@@ -10,7 +10,7 @@ tests exercise the production import path (JSZip, PapaParse, table parsers,
 store ingestion) rather than a stub.
 
 **Why CSVs and not a committed `.zip`:** a zip is opaque in review. When a test
-asserts that trade payables are ₹8,48,000, a reviewer has to be able to see
+asserts that trade payables are ₹12,25,000, a reviewer has to be able to see
 where that comes from. A second benefit is that the CSV path never reaches the
 SheetJS reader, which carries the open advisories noted in `SECURITY.md`.
 
@@ -22,16 +22,19 @@ SheetJS reader, which carries the open advisories noted in `SECURITY.md`.
 |---|---|
 | Name | Meridian Components Private Limited |
 | Financial year | 2025-26 (01-Apr-2025 to 31-Mar-2026) |
-| Ledgers | 31 |
+| Ledgers | 35 |
 | Groups | 14 |
-| Vouchers | 11 |
-| Accounting lines | 34 |
-| Trial balance total | ₹55,91,000 Dr = ₹55,91,000 Cr |
-| Result for the year | Loss of ₹2,00,000 |
+| Vouchers | 13 |
+| Accounting lines | 41 |
+| Trial balance total | ₹60,04,000 Dr = ₹60,04,000 Cr |
+| Balance sheet | ₹47,54,000 on both sides |
+| Result for the year | Loss of ₹5,50,000 |
 
-Revenue ₹7,00,000 against expenses ₹9,00,000 (purchases ₹2,00,000,
-professional fees ₹1,00,000, legal ₹50,000, rent ₹3,00,000, depreciation
-₹2,50,000).
+Revenue ₹7,00,000 against expenses ₹12,50,000 (purchases ₹3,50,000,
+professional fees ₹1,00,000, legal ₹50,000, rent ₹3,00,000, software
+₹2,00,000, depreciation ₹2,50,000). The loss exceeds the opening reserve, so
+Reserves & Surplus closes negative at ₹-50,000, which is what an accumulated
+loss looks like on the face of the balance sheet.
 
 ## Sign convention (read this before changing any amount)
 
@@ -60,8 +63,29 @@ Two independent places in the codebase confirm this: `getTrialBalance` treats
 | JV-002 Journal | 15-Sep-2025 | RCM on an unregistered supplier: input legs are credit, payable legs are not |
 | JV-004 Journal | 05-Oct-2025 | TDS u/s 194I, expense with no GST at all |
 | CON-001 Contra | 10-Nov-2025 | Bank to cash, touches no P&L head |
+| JV-005 Journal | 05-Dec-2025 | Import of services from a foreign supplier: IGST, no GSTIN |
 | PUR-002 Purchase | 20-Jan-2026 | Capital goods, IGST, classified Capital Goods not Inputs |
+| PUR-003 Purchase | 14-Feb-2026 | Inter-state purchase whose supplier GSTIN was never entered |
 | JV-003 Journal | 31-Mar-2026 | Year-end depreciation, dated so date-window filters can be tested |
+
+### The pair that has to be told apart
+
+JV-005 and PUR-003 are the reason the fixture carries a `mailing_country`
+column. On the tax lines alone they are **identical**: both carry IGST, no
+CGST, and no supplier GSTIN.
+
+| | JV-005 | PUR-003 |
+|---|---|---|
+| Supplier | Omega Software Inc | Kappa Traders |
+| Country | United States | India |
+| Classified as | `IMPORTSERVICE` | `B2B` |
+| Rule 36 GSTIN exception? | No, a foreign supplier has no Indian GSTIN | **Yes, the GSTIN was simply never entered** |
+
+Only the party master separates them. Treating PUR-003 as an import would move
+a genuine exception into a bucket that is never checked for a GSTIN, and it
+would disappear from the working papers. A blank country is deliberately **not**
+treated as evidence of an import: that leaves the voucher as B2B, where a
+missing GSTIN gets reported. That is the safe direction to be wrong in.
 
 ## Deliberate imperfections
 

@@ -18,7 +18,7 @@ test('import reads every table out of the export zip', async () => {
   assert.equal(store.accountingLines.length, FIXTURE.accountingLineCount);
   assert.equal(store.stockItems.size, 2);
   assert.equal(store.inventoryLines.length, 3);
-  assert.equal(store.billRefs.length, 8);
+  assert.equal(store.billRefs.length, 10);
   assert.equal(store.gstEffectiveRates.length, 3);
 });
 

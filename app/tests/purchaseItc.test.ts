@@ -1,8 +1,10 @@
 // Purchase ITC register and the issues derived from it.
 //
 // Backs the Purchase GST Register module. The fixture deliberately contains a
-// registered B2B purchase, an RCM journal, a capital-goods purchase and three
-// journals with no GST at all, so the classification branches are all covered.
+// registered B2B purchase, an RCM journal, a capital-goods purchase, an import
+// of services, a domestic purchase whose supplier GSTIN was never filled in,
+// and three journals with no GST at all, so every classification branch and
+// every issue bucket is covered.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,13 +20,16 @@ test('the register picks up exactly the vouchers with an expense-side line', asy
 
   assert.deepEqual(
     rows.map((r) => r.voucherNumber),
-    ['PUR-001', 'JV-001', 'JV-002', 'JV-004', 'PUR-002', 'JV-003'],
+    ['PUR-001', 'JV-001', 'JV-002', 'JV-004', 'JV-005', 'PUR-002', 'PUR-003', 'JV-003'],
   );
 
   // Sorted by invoice date, so the year-end depreciation journal lands last.
   assert.deepEqual(
     rows.map((r) => r.date),
-    ['2025-05-08', '2025-07-31', '2025-09-15', '2025-10-05', '2026-01-18', '2026-03-31'],
+    [
+      '2025-05-08', '2025-07-31', '2025-09-15', '2025-10-05',
+      '2025-12-05', '2026-01-18', '2026-02-12', '2026-03-31',
+    ],
   );
 });
 
@@ -96,7 +101,11 @@ test('output GST ledgers never leak into the input register', async () => {
   assert.equal(rows.find((r) => r.voucherNumber === 'INV-002'), undefined);
 
   const totalTax = rows.reduce((s, r) => s + r.tax, 0);
-  assert.equal(totalTax, -117000, 'CGST/SGST 36,000 + RCM 9,000 + IGST 72,000');
+  assert.equal(
+    totalTax,
+    -180000,
+    'CGST/SGST 36,000 + RCM 9,000 + capital IGST 72,000 + import 36,000 + inter-state 27,000',
+  );
 });
 
 test('TDS ledgers are not mistaken for GST despite sitting under Duties & Taxes', async () => {
@@ -117,7 +126,7 @@ test('the date filter narrows the register', async () => {
   assert.deepEqual(q1.map((r) => r.voucherNumber), ['PUR-001']);
 
   const q4 = getPurchaseITCRegister(store, { dateFrom: '2026-01-01', dateTo: '2026-03-31' });
-  assert.deepEqual(q4.map((r) => r.voucherNumber), ['PUR-002', 'JV-003']);
+  assert.deepEqual(q4.map((r) => r.voucherNumber), ['PUR-002', 'PUR-003', 'JV-003']);
 });
 
 test('an explicit GST-ledger override replaces auto-detection', async () => {
@@ -271,20 +280,67 @@ test('rcmReview and the Rule 36 checks partition the rows by whether tax was boo
   assert.equal(issues.rcmReview.length + 1, rows.length);
 });
 
-test('on the fixture, the RCM row is not reported despite its blank GSTIN', async () => {
+test('on the fixture, only the genuine exception is reported', async () => {
   const store = await fixtureStore();
   const rows = getPurchaseITCRegister(store);
   const issues = deriveItcIssues(rows);
 
-  // JV-002 carries tax of -9,000 and no GSTIN because Epsilon Legal is
-  // unregistered. That is correct for RCM, so it must not be reported.
-  const rcm = rows.find((r) => r.voucherNumber === 'JV-002');
-  assert.equal(rcm?.type, 'RCM-UR');
-  assert.equal(rcm?.partyGstinUin, '');
-  assert.ok((rcm?.tax ?? 0) < 0);
-
-  // Every taxed B2B row in the fixture has a valid GSTIN and an invoice
-  // number, so there is nothing left to report.
-  assert.equal(issues.blankInvalidGstin.length, 0);
+  // Three rows in the register carry tax and no GSTIN. Only one of them is an
+  // exception, and telling them apart is the whole job:
+  //   JV-002  RCM-UR         unregistered supplier, self-invoice  -> not an issue
+  //   JV-005  IMPORTSERVICE  foreign supplier, no Indian GSTIN    -> not an issue
+  //   PUR-003 B2B            domestic supplier, GSTIN not entered -> AT RISK
+  assert.deepEqual(issues.blankInvalidGstin.map((r) => r.voucherNumber), ['PUR-003']);
   assert.equal(issues.noInvoiceNumber.length, 0);
+});
+
+// ── Import of services vs. a supplier GSTIN that was never filled in ───────
+// On the tax lines alone these are indistinguishable: both carry IGST, no CGST
+// and no GSTIN. Classifying the second as an import would move a real Rule 36
+// exception into a bucket that is not checked for a GSTIN, so the register
+// requires positive evidence (a non-Indian country on the party master) before
+// calling anything an import.
+
+test('a purchase from a foreign supplier is classified as an import of services', async () => {
+  const store = await fixtureStore();
+  const row = getPurchaseITCRegister(store).find((r) => r.voucherNumber === 'JV-005');
+
+  assert.ok(row);
+  assert.equal(row.type, 'IMPORTSERVICE');
+  assert.equal(row.partyName, 'Omega Software Inc');
+  assert.equal(row.partyGstinUin, '', 'a foreign supplier has no Indian GSTIN');
+  assert.equal(row.igst, -36000);
+  assert.equal(row.cgst, 0);
+  assert.equal(row.sgst, 0);
+  assert.equal(row.taxable, -200000);
+  assert.equal(row.itcType, 'Input Services');
+});
+
+test('a domestic purchase with a missing GSTIN stays B2B and is reported', async () => {
+  const store = await fixtureStore();
+  const rows = getPurchaseITCRegister(store);
+  const row = rows.find((r) => r.voucherNumber === 'PUR-003');
+
+  assert.ok(row);
+  // Kappa Traders is in Tamil Nadu, so IGST is correct, but the GSTIN was never
+  // entered on the ledger. It looks exactly like the import above on the tax
+  // lines, and must NOT be excused as one.
+  assert.equal(row.type, 'B2B');
+  assert.equal(row.partyGstinUin, '');
+  assert.equal(row.igst, -27000);
+  assert.equal(row.cgst, 0);
+
+  assert.deepEqual(
+    deriveItcIssues(rows).blankInvalidGstin.map((r) => r.voucherNumber),
+    ['PUR-003'],
+  );
+});
+
+test('the import branch does not swallow the registered inter-state purchase', async () => {
+  const store = await fixtureStore();
+  const row = getPurchaseITCRegister(store).find((r) => r.voucherNumber === 'PUR-002');
+
+  // Zeta Machines is in Gujarat with a valid GSTIN: IGST, but plainly domestic.
+  assert.equal(row?.type, 'B2B');
+  assert.equal(row?.igst, -72000);
 });

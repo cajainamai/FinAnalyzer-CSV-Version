@@ -37,8 +37,8 @@ test('the balance sheet balances', async () => {
   const b = await branch();
 
   assert.equal(bsReconciliation(b), 0);
-  assert.equal(totalAssets(b), 4691000);
-  assert.equal(totalEquityLiabilities(b), 4691000);
+  assert.equal(totalAssets(b), 4754000);
+  assert.equal(totalEquityLiabilities(b), 4754000);
 });
 
 test('no ledger is left unclassified', async () => {
@@ -54,12 +54,13 @@ test('equity and liability lines carry the expected figures', async () => {
 
   assert.equal(shareCapital(b), 2000000);
   assert.equal(longTermBorrowings(b), 1368000);
-  assert.equal(tradePayables(b), 848000, 'Beta + Gamma + Epsilon + Zeta');
+  assert.equal(tradePayables(b), 1225000, 'Beta, Gamma, Epsilon, Zeta, Omega and Kappa');
 
   // The year-end transfer JV has not been posted, so the loss is carried into
-  // reserves: 5,00,000 opening reserve less the 2,00,000 loss.
+  // reserves: 5,00,000 opening reserve less the 5,50,000 loss leaves reserves
+  // negative, which is what an accumulated loss looks like on the face.
   assert.equal(surplusTransfer(b), -FIXTURE.netLoss);
-  assert.equal(reservesSurplus(b), 300000);
+  assert.equal(reservesSurplus(b), -50000);
 });
 
 test('asset lines carry the expected figures', async () => {
@@ -73,11 +74,11 @@ test('the profit and loss statement ties to the ledgers', async () => {
 
   assert.equal(revenueFromOps(b), 700000);
   assert.equal(totalRevenue(b), 700000);
-  assert.equal(purchases(b), 200000);
+  assert.equal(purchases(b), 350000);
   assert.equal(depreciation(b), 250000);
-  assert.equal(totalExpenses(b), 900000);
+  assert.equal(totalExpenses(b), 1250000);
 
-  // Revenue 7,00,000 less expenses 9,00,000.
+  // Revenue 7,00,000 less expenses 12,50,000.
   assert.equal(profitBeforeTax(b), -FIXTURE.netLoss);
 });
 
