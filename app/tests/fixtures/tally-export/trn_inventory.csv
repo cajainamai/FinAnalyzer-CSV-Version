@@ -1,0 +1,4 @@
+guid,item,quantity,rate,amount,additional_amount,discount_amount,godown,tracking_number,order_number,order_duedate
+vch-001,Precision Bearing 6205,-200,2500,500000,0,0,Main Godown,,,
+vch-002,Steel Rod 12mm,400,500,-200000,0,0,Main Godown,,,
+vch-006,Precision Bearing 6205,-80,2500,200000,0,0,Main Godown,,,

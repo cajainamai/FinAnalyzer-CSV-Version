@@ -4,7 +4,11 @@
 // enrichment-field coverage on the LedgerEntry shim, and a handful of derived
 // figures so a reviewer can eyeball that nothing silently parses to zero.
 //
-// Run: npx tsx scripts/smoke-test-all-modules.mjs <zip>
+// Run: npx tsx scripts/smoke-test-all-modules.mjs [zip]
+//
+// With no argument it runs against the committed CSV fixture under
+// tests/fixtures/tally-export, so the script works in CI without client data.
+// Pass a real export ZIP to run the same checks over a live company.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -14,15 +18,28 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 const zipPath = process.argv[2];
 
-if (!zipPath || !existsSync(zipPath)) {
-  console.error('Usage: npx tsx scripts/smoke-test-all-modules.mjs <path-to-tally-export.zip>');
+if (zipPath && !existsSync(zipPath)) {
+  console.error(`No such file: ${zipPath}`);
+  console.error('Usage: npx tsx scripts/smoke-test-all-modules.mjs [path-to-tally-export.zip]');
+  console.error('With no argument, the committed fixture under tests/fixtures is used.');
   process.exit(1);
 }
 
 const { TallyStore, getPurchaseITCRegister, getTrialBalance } =
   await import(pathToFileURL(resolve(root, 'services/tally/index.ts')).href);
 
-const store = await TallyStore.fromZip(new Blob([readFileSync(zipPath)]));
+let store;
+if (zipPath) {
+  store = await TallyStore.fromZip(new Blob([readFileSync(zipPath)]));
+} else {
+  const { fixtureStore } = await import(
+    pathToFileURL(resolve(root, 'tests/helpers/fixtureStore.ts')).href
+  );
+  store = await fixtureStore();
+  console.log('No zip given: running against the committed fixture in tests/fixtures/tally-export.');
+  console.log('Pass a real export ZIP as the first argument to check a live company.');
+  console.log('');
+}
 const rows = store.getLedgerEntries();
 const tx = rows.filter((r) => !r.is_master_ledger);
 

@@ -1,0 +1,7 @@
+guid,name,parent,numbering_method,is_deemedpositive,affects_stock
+vt-001,Sales,Sales,Automatic,0,1
+vt-002,Purchase,Purchase,Automatic,1,1
+vt-003,Payment,Payment,Automatic,1,0
+vt-004,Receipt,Receipt,Automatic,0,0
+vt-005,Journal,Journal,Automatic,0,0
+vt-006,Contra,Contra,Automatic,0,0
