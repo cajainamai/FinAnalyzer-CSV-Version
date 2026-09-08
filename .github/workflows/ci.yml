@@ -1,0 +1,97 @@
+# Typecheck, test and build on every push and pull request.
+#
+# The repo previously had no CI for correctness: `deploy-pages.yml` and
+# `build-desktop.yml` both run `npm run build`, and Vite transpiles without
+# typechecking, so a type error could ship to Pages and to a desktop release
+# without anything going red. This workflow closes that gap.
+#
+# `npm test` chains typecheck -> fixture-backed unit tests -> GSTR-2B tests ->
+# audit DB smoke test -> cross-module smoke test. It is deliberately the same
+# command a developer runs locally, so CI cannot drift from the local contract.
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+      - 'feat/**'
+      - 'fix/**'
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        # `npm ci` also compiles the better-sqlite3 native addon, which the
+        # audit DB smoke test needs.
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (fixture-backed computation layer)
+        run: npm run test:units
+
+      - name: GSTR-2B reconciliation tests
+        run: npm run test:gstr2b
+
+      - name: Audit DB smoke test
+        run: npm run test:db
+
+      - name: Cross-module smoke test
+        # Runs against the committed CSV fixture, so it needs no client data.
+        run: npm run test:smoke
+
+      - name: Build
+        run: npm run build
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit runtime dependencies
+        # Reported, not enforced: `xlsx` currently carries two high-severity
+        # advisories with no npm fix available (see SECURITY.md). Failing the
+        # build on it would block every PR without giving anyone a way to pass,
+        # so this step surfaces the state and stays green.
+        run: npm audit --omit=dev || true

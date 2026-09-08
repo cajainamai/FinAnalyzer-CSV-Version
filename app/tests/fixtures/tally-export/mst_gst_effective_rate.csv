@@ -1,0 +1,4 @@
+item,applicable_from,hsn_description,hsn_code,duty_head,rate,rate_per_unit,valuation_type,is_rcm_applicable,nature_of_transaction,nature_of_goods,supply_type,taxability
+Precision Bearing 6205,2025-04-01,Ball bearings,84821011,IGST,18,0,Based on Value,0,Sales Taxable,Goods,Goods,Taxable
+Steel Rod 12mm,2025-04-01,Bars and rods of iron,72141010,CGST,9,0,Based on Value,0,Purchase Taxable,Goods,Goods,Taxable
+Steel Rod 12mm,2025-04-01,Bars and rods of iron,72141010,SGST,9,0,Based on Value,0,Purchase Taxable,Goods,Goods,Taxable

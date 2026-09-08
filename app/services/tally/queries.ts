@@ -74,6 +74,10 @@ const MONTH_NAMES = [
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Tolerance for "is this figure zero?". Amounts on the register are rounded to
+// paise, so anything non-zero is at least 0.01.
+const ITC_EPSILON = 0.005;
+
 const monthNameOf = (iso: string): string => {
   if (!iso || iso.length < 7) return '';
   const m = Number(iso.slice(5, 7));
@@ -126,6 +130,20 @@ const isRcmLedger = (name: string): boolean => (name || '').toUpperCase().includ
 const isRcmPayableLedger = (name: string): boolean => {
   const n = (name || '').toUpperCase();
   return n.includes('RCM') && n.includes('PAYABLE');
+};
+
+// An import of services and a domestic inter-state purchase whose supplier
+// GSTIN was simply never filled in look identical on the tax lines alone: both
+// carry IGST, no CGST and no GSTIN. So the tax lines cannot decide it, and
+// guessing "import" on that evidence would move a genuine Rule 36 exception
+// into a bucket that is not checked for a GSTIN — silently hiding it.
+//
+// We therefore require positive evidence that the supplier is foreign. A blank
+// country is not evidence: it leaves the voucher as B2B, where a missing GSTIN
+// is reported for review. That is the safe direction to be wrong in.
+const isForeignParty = (ledger?: Ledger): boolean => {
+  const country = (ledger?.mailing_country || '').trim().toLowerCase();
+  return country !== '' && country !== 'india';
 };
 
 // 15-char GSTIN format check. Used by the Issues panel — accepts the
@@ -320,7 +338,15 @@ export const getPurchaseITCRegister = (
     const hasRcm = lines.some((l) => l.isRcm);
     let type: ItcType;
     if (hasRcm) type = 'RCM-UR';
-    else if (!partyGstin && igst > 0 && cgst === 0) type = 'IMPORTSERVICE';
+    // `igst` and `cgst` are raw sums of line amounts, so an import DEBITS IGST
+    // and carries a negative figure. This branch used to read `igst > 0`, which
+    // no purchase can satisfy, so no voucher was ever classified as an import.
+    else if (
+      !partyGstin
+      && isForeignParty(partyLedger)
+      && Math.abs(igst) > ITC_EPSILON
+      && Math.abs(cgst) < ITC_EPSILON
+    ) type = 'IMPORTSERVICE';
     else type = 'B2B';
 
     const invoiceNo = (voucher.reference_number || voucher.voucher_number || '').trim();
@@ -368,11 +394,28 @@ export const getPurchaseITCRegister = (
 // ── Issues (derived from the ITC register) ──────────────────────────────────
 
 export interface ItcIssues {
-  rcmReview: ItcRow[];          // Tax === 0 → check whether RCM should apply
+  rcmReview: ItcRow[];          // No tax booked → check whether RCM should apply
   cgstSgstMismatch: ItcRow[];   // |CGST - SGST| > 0.005 → data entry error
-  blankInvalidGstin: ItcRow[];  // Tax > 0 AND GSTIN blank/invalid → ITC at risk under Rule 36
-  noInvoiceNumber: ItcRow[];    // Tax > 0 AND vchNo blank → mandatory under Rule 36(4)
+  blankInvalidGstin: ItcRow[];  // Tax booked on a B2B row AND GSTIN blank/invalid → ITC at risk under Rule 36
+  noInvoiceNumber: ItcRow[];    // Tax booked AND vchNo blank → mandatory under Rule 36(4)
 }
+
+// ITC is availed by DEBITING the input-GST ledgers, and a debit is negative
+// under Tally's sign convention, so a genuine purchase carries tax < 0. Only a
+// credit note that reverses ITC carries tax > 0.
+//
+// The Rule 36 checks below used to be gated on `tax > 0`, which meant they
+// never fired on a single real purchase — the exact rows they exist to police.
+// They test the magnitude instead, so a row is checked whenever tax was booked
+// on it, in either direction.
+const hasTaxBooked = (r: ItcRow): boolean => Math.abs(r.tax) > ITC_EPSILON;
+
+// A supplier GSTIN only exists where the supplier is registered. RCM on an
+// unregistered supplier is availed on a self-invoice raised under s.31(3)(f),
+// and an import of services has no Indian GSTIN at all, so a blank GSTIN on
+// those rows is correct rather than an exception. Flagging them would bury the
+// B2B rows that genuinely put ITC at risk.
+const GSTIN_EXPECTED_FOR: ReadonlySet<ItcType> = new Set<ItcType>(['B2B']);
 
 export const deriveItcIssues = (rows: ItcRow[]): ItcIssues => {
   const rcmReview: ItcRow[] = [];
@@ -381,10 +424,14 @@ export const deriveItcIssues = (rows: ItcRow[]): ItcIssues => {
   const noInvoiceNumber: ItcRow[] = [];
 
   for (const r of rows) {
-    if (r.tax === 0) rcmReview.push(r);
-    if (Math.abs(r.cgst - r.sgst) > 0.005) cgstSgstMismatch.push(r);
-    if (r.tax > 0 && !isValidGstin(r.partyGstinUin)) blankInvalidGstin.push(r);
-    if (r.tax > 0 && !r.vchNo.trim()) noInvoiceNumber.push(r);
+    const taxed = hasTaxBooked(r);
+
+    if (!taxed) rcmReview.push(r);
+    if (Math.abs(r.cgst - r.sgst) > ITC_EPSILON) cgstSgstMismatch.push(r);
+    if (taxed && GSTIN_EXPECTED_FOR.has(r.type) && !isValidGstin(r.partyGstinUin)) {
+      blankInvalidGstin.push(r);
+    }
+    if (taxed && !r.vchNo.trim()) noInvoiceNumber.push(r);
   }
 
   return { rcmReview, cgstSgstMismatch, blankInvalidGstin, noInvoiceNumber };

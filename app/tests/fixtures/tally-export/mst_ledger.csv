@@ -1,0 +1,36 @@
+guid,name,parent,is_revenue,is_deemedpositive,opening_balance,closing_balance,mailing_state,mailing_country,it_pan,gstn,gst_registration_type,gst_duty_head,bill_credit_period
+led-001,Alpha Traders,Sundry Debtors,0,1,-354000,-590000,Maharashtra,India,AABCA1234C,27AABCA1234C1Z5,Regular,,30
+led-002,Delta Enterprises,Sundry Debtors,0,1,0,-236000,Karnataka,India,AAECD5678D,29AAECD5678D1ZA,Regular,,45
+led-003,Beta Industries,Sundry Creditors,0,0,236000,236000,Maharashtra,India,AABCB2345B,27AABCB2345B1Z7,Regular,,30
+led-004,Gamma Consultants,Sundry Creditors,0,0,0,90000,Maharashtra,India,AAFCG3456G,27AAFCG3456G1Z9,Regular,,15
+led-005,Epsilon Legal,Sundry Creditors,0,0,0,50000,Maharashtra,India,AAJPE4567E,,Unregistered,,0
+led-006,Zeta Machines,Sundry Creditors,0,0,0,472000,Gujarat,India,AABCZ6789Z,24AABCZ6789Z1Z3,Regular,,60
+led-007,Cash in Hand,Cash-in-hand,0,1,-50000,-75000,,India,,,,,0
+led-008,HDFC Bank Current A/c,Bank Accounts,0,1,-1200000,-1023000,,India,,,,,0
+led-009,Plant & Machinery,Fixed Assets,0,1,-2500000,-2650000,,India,,,,,0
+led-010,Share Capital,Capital Account,0,0,2000000,2000000,,India,,,,,0
+led-011,General Reserve,Reserves & Surplus,0,0,500000,500000,,India,,,,,0
+led-012,HDFC Term Loan,Loans (Liability),0,0,1368000,1368000,,India,,,,,0
+led-013,Sales - Finished Goods,Sales Accounts,1,0,0,700000,,India,,,,,0
+led-014,Purchase - Raw Material,Purchase Accounts,1,1,0,-350000,,India,,,,,0
+led-015,Output CGST,Duties & Taxes,0,0,0,45000,,India,,,,CGST,0
+led-016,Output SGST,Duties & Taxes,0,0,0,45000,,India,,,,SGST,0
+led-017,Output IGST,Duties & Taxes,0,0,0,36000,,India,,,,IGST,0
+led-018,Input CGST,Duties & Taxes,0,1,0,-18000,,India,,,,CGST,0
+led-019,Input SGST,Duties & Taxes,0,1,0,-18000,,India,,,,SGST,0
+led-020,Input IGST,Duties & Taxes,0,1,0,-135000,,India,,,,IGST,0
+led-021,Input CGST - RCM,Duties & Taxes,0,1,0,-4500,,India,,,,CGST,0
+led-022,Input SGST - RCM,Duties & Taxes,0,1,0,-4500,,India,,,,SGST,0
+led-023,RCM Payable - CGST,Duties & Taxes,0,0,0,4500,,India,,,,CGST,0
+led-024,RCM Payable - SGST,Duties & Taxes,0,0,0,4500,,India,,,,SGST,0
+led-025,TDS Payable - 194J,Duties & Taxes,0,0,0,10000,,India,,,,,0
+led-026,TDS Payable - 194I,Duties & Taxes,0,0,0,30000,,India,,,,,0
+led-027,Professional Charges,Indirect Expenses,1,1,0,-100000,,India,,,,,0
+led-028,Legal Charges,Indirect Expenses,1,1,0,-50000,,India,,,,,0
+led-029,Rent,Indirect Expenses,1,1,0,-300000,,India,,,,,0
+led-030,Depreciation,Indirect Expenses,1,1,0,-250000,,India,,,,,0
+led-031,Profit & Loss A/c,,0,0,0,0,,India,,,,,0
+led-032,Omega Software Inc,Sundry Creditors,0,0,0,200000,,United States,,,Unregistered,,0
+led-033,Kappa Traders,Sundry Creditors,0,0,0,177000,Tamil Nadu,India,AABCK7890K,,Regular,,30
+led-034,Software Subscription Charges,Indirect Expenses,1,1,0,-200000,,India,,,,,0
+led-035,IGST Payable - Import,Duties & Taxes,0,0,0,36000,,India,,,,IGST,0

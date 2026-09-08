@@ -293,10 +293,36 @@ npm run dev          # Vite dev server at http://127.0.0.1:5173
 # 4. Build
 npm run build        # Production build → /dist
 
-# 5. Test
-npm run test:gstr2b  # GSTR-2B unit tests
-node scripts/smoke-test-all-modules.mjs  # Smoke test all 24 modules
+# 5. Verify (typecheck + tests): the same command CI runs
+npm test
+
+# …or individually
+npm run typecheck    # tsc --noEmit across the whole app
+npm run test:units   # fixture-backed tests: store, trial balance, ITC, Sch III, ageing
+npm run test:gstr2b  # GSTR-2B reconciliation unit tests
+npm run test:db      # audit.sqlite schema, PRAGMA and 50k-row insert smoke test
+npm run test:smoke   # cross-module smoke test over the committed fixture
+
+# 6. Run the smoke test against a real company instead of the fixture
+npx tsx scripts/smoke-test-all-modules.mjs <path-to-tally-export.zip>
 ```
+
+### Test fixture
+
+`npm run test:units` and `npm run test:smoke` run against a synthetic set of
+books committed at [`app/tests/fixtures/`](app/tests/fixtures/README.md):
+Meridian Components Private Limited, FY 2025-26, 31 ledgers and 11 vouchers
+covering GST (intra-state, inter-state, RCM, capital goods), TDS, FIFO ageing
+and Schedule III classification. No client data is involved, so the whole
+suite runs in CI.
+
+The fixture is stored as one CSV per table rather than as a binary ZIP, so
+every figure a test asserts is visible in a diff. See the fixture README before
+changing any amount: the sign convention is Tally's (a debit is negative), and
+the books are balanced by construction.
+
+> `npm run build` does **not** typecheck, Vite transpiles only. Run `npm test`
+> before opening a PR, or CI will catch it for you.
 
 ### Architecture Overview
 

@@ -1,0 +1,3 @@
+guid,name,parent,category,alias,uom,opening_balance,opening_rate,opening_value,closing_balance,closing_rate,closing_value,costing_method,gst_type_of_supply,gst_hsn_code,gst_hsn_description,gst_rate,gst_taxability
+itm-001,Precision Bearing 6205,Bearings,,PB6205,Nos,100,1800,180000,120,1800,216000,FIFO,Goods,84821011,Ball bearings,18,Taxable
+itm-002,Steel Rod 12mm,Raw Steel,,SR12,Kg,0,0,0,400,500,200000,FIFO,Goods,,,0,

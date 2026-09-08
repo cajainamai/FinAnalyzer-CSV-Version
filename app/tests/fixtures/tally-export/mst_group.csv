@@ -1,0 +1,15 @@
+guid,name,parent,primary_group,is_revenue,is_deemedpositive,is_reserved,affects_gross_profit,sort_position
+grp-001,Capital Account,,Capital Account,0,0,1,0,10
+grp-002,Reserves & Surplus,Capital Account,Reserves & Surplus,0,0,1,0,11
+grp-003,Current Assets,,Current Assets,0,1,1,0,20
+grp-004,Cash-in-hand,Current Assets,Cash-in-hand,0,1,1,0,21
+grp-005,Bank Accounts,Current Assets,Bank Accounts,0,1,1,0,22
+grp-006,Sundry Debtors,Current Assets,Sundry Debtors,0,1,1,0,23
+grp-007,Current Liabilities,,Current Liabilities,0,0,1,0,30
+grp-008,Sundry Creditors,Current Liabilities,Sundry Creditors,0,0,1,0,31
+grp-009,Duties & Taxes,Current Liabilities,Duties & Taxes,0,0,1,0,32
+grp-010,Fixed Assets,,Fixed Assets,0,1,1,0,40
+grp-011,Loans (Liability),,Loans (Liability),0,0,1,0,50
+grp-012,Sales Accounts,,Sales Accounts,1,0,1,1,60
+grp-013,Purchase Accounts,,Purchase Accounts,1,1,1,1,70
+grp-014,Indirect Expenses,,Indirect Expenses,1,1,1,0,80

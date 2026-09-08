@@ -1,0 +1,14 @@
+guid,date,voucher_type,voucher_number,reference_number,reference_date,narration,party_name,place_of_supply,is_invoice,is_accounting_voucher,is_inventory_voucher,is_order_voucher
+vch-001,2025-04-15,Sales,INV-001,INV-001,2025-04-15,Sale of bearings to Alpha Traders,Alpha Traders,Maharashtra,1,1,1,0
+vch-002,2025-05-10,Purchase,PUR-001,BILL-B-101,2025-05-08,Raw material purchase from Beta Industries,Beta Industries,Maharashtra,1,1,1,0
+vch-003,2025-06-05,Payment,PMT-001,,,Payment against opening balance to Beta Industries,Beta Industries,,0,1,0,0
+vch-004,2025-06-20,Receipt,RCP-001,,,Receipt against opening balance from Alpha Traders,Alpha Traders,,0,1,0,0
+vch-005,2025-07-31,Journal,JV-001,GC-JUL-01,2025-07-31,Professional fees with TDS u/s 194J,Gamma Consultants,,0,1,0,0
+vch-006,2025-08-12,Sales,INV-002,INV-002,2025-08-12,Interstate sale to Delta Enterprises,Delta Enterprises,Karnataka,1,1,1,0
+vch-007,2025-09-15,Journal,JV-002,EL-SEP-01,2025-09-15,Legal fees from unregistered supplier - RCM applicable,Epsilon Legal,Maharashtra,0,1,0,0
+vch-008,2026-03-31,Journal,JV-003,,,Depreciation on plant and machinery for FY 2025-26,,,0,1,0,0
+vch-009,2025-10-05,Journal,JV-004,,,Office rent with TDS u/s 194I,,,0,1,0,0
+vch-010,2025-11-10,Contra,CON-001,,,Cash withdrawn from bank for office use,,,0,1,0,0
+vch-011,2026-01-20,Purchase,PUR-002,ZM-2026-77,2026-01-18,Purchase of CNC machine from Zeta Machines,Zeta Machines,Gujarat,1,1,0,0
+vch-012,2025-12-05,Journal,JV-005,,,Annual software subscription from overseas vendor - import of services,Omega Software Inc,Maharashtra,0,1,0,0
+vch-013,2026-02-14,Purchase,PUR-003,KT-556,2026-02-12,Inter-state raw material purchase from Kappa Traders,Kappa Traders,Maharashtra,1,1,0,0
