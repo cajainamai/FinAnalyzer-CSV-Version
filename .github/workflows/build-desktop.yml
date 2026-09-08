@@ -22,6 +22,18 @@ on:
     tags:
       - 'v*'
 
+# The release job recreates a rolling tag (delete then create), so two runs
+# finishing close together can clobber each other's release. Grouping by ref
+# means a newer push to main supersedes an older one still in flight, and also
+# frees the scarce Windows/macOS runners the superseded run was holding.
+#
+# Grouped by ref rather than a single static name on purpose: a tag build
+# publishes a release at its own tag, so it must never be cancelled by an
+# unrelated push to main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write        # the release job creates a tag + release via the token
 
